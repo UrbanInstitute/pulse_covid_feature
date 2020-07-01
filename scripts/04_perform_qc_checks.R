@@ -14,9 +14,9 @@ library(urbnthemes)
 
 rolling_all <- read_csv(here("data/final-data", "rolling_all_to_current_week.csv"))
 
-all_diff_ses <- read_csv(here("data/final-data", "all_diff_ses.csv"))
+all_diff_ses <- read_csv(here("data/intermediate-data", "all_diff_ses.csv"))
 
-# us_diff_ses = read_csv(here("data/intermediate-data", "us_diff_ses.csv"))
+us_diff_ses = read_csv(here("data/intermediate-data", "us_diff_ses.csv"))
 
 svy_rolling <- readRDS(here("data/intermediate-data", "svy_rolling.rds"))
 
@@ -1398,7 +1398,7 @@ test_against_manual <- function(svy = svy_rolling, data = all_diff_ses, metric_n
   return(comparison_groups_df)
 }
 
-test_against_manual_us <- function(svy = svy_rolling, data = all_diff_ses, metric_name, wk_num, race_name) {
+test_against_manual_us <- function(svy = svy_rolling, data = us_diff_ses, metric_name, wk_num, race_name) {
   # function to test against manual calculations for whole US
 
   metric_formula <- as.formula(paste0("~", metric_name))
@@ -1470,7 +1470,7 @@ test_against_manual_us <- function(svy = svy_rolling, data = all_diff_ses, metri
 random_test_list_manual <- tibble(
   metric_name = sample(metrics, 10, replace = TRUE),
   wk_num = sample(week_crosswalk$week_int, size = 10, replace = TRUE),
-  race_name = sample(c("black", "asian", "hispanic", "other"), 10, replace = TRUE),
+  race_name = sample(c("black", "asian", "hispanic", "other", "white"), 10, replace = TRUE),
   geo_name = c(sample(all_states, 7), sample(all_metros, 3)),
   geo_col = c(rep("state", 7), rep("cbsa_title", 3))
 )
@@ -1478,17 +1478,10 @@ random_test_list_manual <- tibble(
 # Test manual calculations for specific geographies and all US
 se_manual_calc_test_results <- random_test_list_manual %>% pmap_df(test_against_manual)
 
+random_test_list_us = tibble(
+   metric_name = sample(metrics, 10, replace = TRUE),
+   wk_num = sample(week_crosswalk$week_int, size = 10, replace = TRUE),
+   race_name = sample(c("black", "asian", "hispanic", "other", "white"), 10, replace = TRUE),
+ )
 
-# Not runnign US tests for now as test function isn't working correctly yet
-# TODO: Fix test_against_manual_us function
-#
-# random_test_list_us = tibble(
-#   metric_name = sample(metrics, 10, replace = TRUE),
-#   wk_num = sample(week_crosswalk$week_int, size = 10, replace = TRUE),
-#   race_name = sample(c("black", "asian", "hispanic", "other"), 10, replace = TRUE),
-# )
-#
-# se_manual_calc_test_us_results = random_test_list_us %>% pmap_df(test_against_manual_us)
-# test_against_manual_us(svy_rolling, us_diff_ses, "inc_loss", "wk1_2", "black")
-# test_against_manual_us(svy_rolling, us_diff_ses, "mortgage_not_conf", "wk4_5", "hispanic")
-#
+se_manual_calc_test_us_results = random_test_list_us %>% pmap_df(test_against_manual_us)

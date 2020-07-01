@@ -430,7 +430,7 @@ metrics <- c(
 )
 race_indicators <- c("black", "asian", "hispanic", "white", "other", "total")
 
-# Update: ran on c5.4xlarge instance and took 2.5 hours (with print statements for debugging)
+# Update: ran on c5.4xlarge instance and took 3 hours
 start <- Sys.time()
 all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators = race_indicators)
 end <- Sys.time()
