@@ -8,8 +8,8 @@ Survey public use
 files](https://www.census.gov/programs-surveys/household-pulse-survey/datasets.html)
 to estimate COVID-19 imppacts on few selected variables for the US, all 50 states and the District of
 Columbia, and the 15 largest metropolitan statistical areas (MSAs). The output
-data files of this repo power Urban's interactive Tracking COVID-19’s Effects by
-Race and Ethnicity data feature visualizing impacts of COVID-19 on US adults and
+data files of this repo power Urban's interactive [Tracking COVID-19’s Effects by
+Race and Ethnicity](https://www.urban.org/features/tracking-covid-19s-effects-race-and-ethnicity) data feature visualizing impacts of COVID-19 on US adults and
 their households by geography and race/ethnicity. You can view the code for
 creating the web application at this Github repo.
 
@@ -21,7 +21,7 @@ geography. We highly recommend interpreting these results as *relative impacts
 of COVID-19*  which can be used to inform race-conscious solutions that account for the pandemic's
 disparate impacts by race and ethnicity.
 
-For more information, see the technical appendix from our interactive data feature.
+For more information, see the [technical appendix](https://www.urban.org/sites/default/files/tracking_covid-19s_effects_by_race_and_ethnicity_appendix.pdf) from our interactive data feature.
 
 ## Required R Libraries:
 - `tidyverse`
