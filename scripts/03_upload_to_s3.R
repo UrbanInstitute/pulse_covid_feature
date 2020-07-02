@@ -53,15 +53,15 @@ feature_data_dictionary <-
     ~variable.name, ~variable.type, ~definition,
     "geography", "string", "geography name",
     "metric", "string", "name of metric",
-    "week_num", "string", "week number (point) or interval (rolling)",
+    "week_num", "string", "week interval",
     "race_var", "string", "race/ethnicity group",
-    "mean", "float", "mean for metric/race/week/geography",
-    "se", "float", "standard error for estimate, if mean is 0 then standard error will be null",
+    "mean", "float", "mean for metric/race/week/geography, if there are no observations for a given metric/race/week/geography, the mean will be null",
+    "se", "float", "standard error for estimate, if mean is 0 then standard error will be null and if mean is 0 or 1 standard error will be 0 ",
     "moe_95", "float", "95% confidence margin of error",
     "moe_95_lb", "float", "lower bound of 95% confidence interval (mean - moe_95)",
     "moe_95_ub", "float", "upper bound of 95% confidence interval (mean + moe_95)",
-    "geo_type", "string", "type of geography (either 'state' or 'msa')",
-    "sigdiff", "bool", "whether mean is significantly different from total mean for geography (it willl always = 0 where race_var = \"total\")"
+    "geo_type", "string", "type of geography ('state' , 'msa', or 'national')",
+    "sigdiff", "bool", "whether mean is significantly different from total mean for geography. If race_var is 'total' and geo_type is 'state' or 'msa', sigdiff representes whether the state/msa mean  is significantly different from the national mean. If geo_type is 'national' and race_var is not 'total', sigdiff represents whether the national mean for the given race/ethnicity group is significantly different from the overall national average. If geo_type is 'national' and race_var is 'total', sigdiff will be null"
   )
 
 
