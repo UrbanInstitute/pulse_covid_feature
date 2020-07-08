@@ -266,7 +266,7 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
   return(df_clean)
 }
 
-CUR_WEEK <- 7
+CUR_WEEK <- 8
 week_vec <- c(1:CUR_WEEK)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named
