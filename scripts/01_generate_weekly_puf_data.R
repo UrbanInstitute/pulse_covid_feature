@@ -172,7 +172,7 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         TRUE ~ NA_real_
       ),
       # Dummy var for paid rent last month (1 = yes, 0 = no)
-      rent_paid_last_month = case_when(
+      rent_not_paid = case_when(
         # did not pay on time or payment deferred = 1
         mortlmth %in% c(2, 3) & tenure == 3 ~ 1,
         # paid on time = 0
@@ -180,7 +180,7 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         TRUE ~ NA_real_
       ),
       # Dummy var for paid mortgage last month (1 = yes, 0 = no)
-      mortgage_paid_last_month = case_when(
+      mortgage_not_paid = case_when(
         # slight or no confidnece or payment already deferred = 1
         mortlmth %in% c(2, 3) & tenure == 2 ~ 1,
         # moderate or high confidence = 0
@@ -282,7 +282,7 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
   return(df_clean)
 }
 
-CUR_WEEK <- 7
+CUR_WEEK <- 9
 week_vec <- c(1:CUR_WEEK)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named
@@ -310,8 +310,8 @@ appended_column_data_dictionary <-
     "payment_not_conf", "Indicator variable for if a respondent has little or no confidence in paying rent/mortgage next month or has already deferred payment for next months rent/mortgage. Note this excludes people who oen their homes free and clear or occupy thier house without payment of rent. They are coded as 1 if mortconf is  1,2 or ; s 0 if mortconf is 3 or 4; and NA otherwise",
     "rent_not_conf", "Indicator variable for if a respondent has little or no confidence in paying thier rent next month or has already deferred. This is a limited to renters (ie tenure ==3)",
     "mortgage_not_conf", "Indicator variable for if a respondent has little or no confidence in paying thier mortgage next month or has already deferred. This is a limited to owners paying mortgage (ie tenure ==2)",
-    "rent_paid_last_month", "Indicator variable for if a respondent did not pay thier rent last month or deferred. This is a limited to renters (ie tenure ==3)",
-    "mortgage_paid_last_month", "Indicator variable for if a respondent did not pay thier mortgage last month or deferred. This is a limited to owners paying mortgage (ie tenure ==2)",
+    "rent_not_paid", "Indicator variable for if a respondent did not pay thier rent last month or deferred. This is a limited to renters (ie tenure ==3)",
+    "mortgage_not_paid", "Indicator variable for if a respondent did not pay thier mortgage last month or deferred. This is a limited to owners paying mortgage (ie tenure ==2)",
     "food_insufficient", "Indicator variable for if a respondents household has sometimes or often had not enough to eat in the last 7 days. This is essentially a recoding of the curfoodsuff variable where 3 and 4 are coded as 1, 1 and 3 are coded as 0, and -88 and -99 are coded as NA",
     "classes_cancelled", "Indicator variable for if a responent's child has had classes which are normally taught in person cancelled due to the coronavirus. Note this question was only asked to households with children enrolled in public or private school. This is essentially a recoding of the teach1 variable where 1 was coded as 1,  respondents who responded to atleast one of teach1, teach2, teach3, teach4 or teach5 were coded as 0, and NA otherwise",
     "anxious_score", "A recoding of the anxious variable to correctly reflect the numerical scores used to determine symptoms of generalized anxiety disorder. Specifically not at all = 0, several days = 1, more than half the days = 2, and nearly every day = 3",

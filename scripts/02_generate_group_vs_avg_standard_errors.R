@@ -305,7 +305,7 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     left_join(geo_xwalk, by = "geo_col")
 
   # for testing (as running on all 4080 combintaions takes up too much RAM)
-  # full_combo = full_combo %>% filter(race_indicator %in% c("black", "total") , metric == "mortgage_not_conf")
+  #full_combo = full_combo %>% filter(race_indicator %in% c("black", "total") , metric == "rent_paid_last_month")
 
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
@@ -424,8 +424,8 @@ metrics <- c(
   "expect_inc_loss",
   "rent_not_conf",
   "mortgage_not_conf",
-  "rent_paid_last_month",
-  "mortgage_paid_last_month",
+  "rent_not_paid",
+  "mortgage_not_paid",
   "food_insufficient",
   "classes_cancelled",
   "depression_anxiety_signs"
