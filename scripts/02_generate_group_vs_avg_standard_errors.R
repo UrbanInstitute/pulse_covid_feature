@@ -424,6 +424,8 @@ metrics <- c(
   "expect_inc_loss",
   "rent_not_conf",
   "mortgage_not_conf",
+  "rent_paid_last_month",
+  "mortgage_paid_last_month",
   "food_insufficient",
   "classes_cancelled",
   "depression_anxiety_signs"
