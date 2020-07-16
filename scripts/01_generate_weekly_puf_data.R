@@ -282,6 +282,7 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
   return(df_clean)
 }
 
+
 CUR_WEEK <- 9
 week_vec <- c(1:CUR_WEEK)
 
