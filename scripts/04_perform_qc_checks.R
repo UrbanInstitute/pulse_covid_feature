@@ -739,9 +739,9 @@ readin_rent_not_paid_data <- function(sheet, filepath, skip = 5) {
     # Replace NA's with 0. DANGEROUS! But this seems correct after adding up Census figrues
     mutate_at(vars(-variable), replace_na, 0) %>%
     mutate(
-      perc_rent_not_paid = payment_no + payment_deferred / (payment_no + payment_yes + payment_deferred),
+      perc_rent_not_paid = payment_no + payment_deferred / (total - occup_no_rent - did_not_respond_conf),
       total_not_paid = payment_no + payment_deferred,
-      total_answered = payment_no + payment_yes + payment_deferred,
+      total_answered = total - occup_no_rent - did_not_respond_conf,
       geography = sheet
     ) %>%
     # Removing Hispanic Origin and Race Header Row
