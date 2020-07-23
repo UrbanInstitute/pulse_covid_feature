@@ -109,7 +109,7 @@ readin_tech_availability_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, device_rarely_available, device_never_available, device_total_answered,
@@ -117,7 +117,7 @@ readin_tech_availability_data <- function(sheet, filepath, skip = 5) {
       perc_dev_unavail, perc_int_unavail, total, device_percent_answered, internet_percent_answered
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num))
   return(result)
 }
 
@@ -185,14 +185,15 @@ readin_educ_affected_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% food_insuff_data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
+  
   result <- data_by_race %>%
     select(
       variable, geography, total, total_answered, perc_classes_cancelled,
       perc_using_distance_learning_online, perc_using_distance_learning_paper
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -261,10 +262,11 @@ readin_employ_loss_data <- function(sheet, filepath, skip = 5) {
   #          discard(is.na) %>%
   #          round(1) %==% food_insuff_data_by_race$total %>% discard(is.na) %>% round(1))
 
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(variable, geography, total_answered_lose, total_answered_lost, income_loss_since_mar_13, income_loss_next_4_wks, perc_lost_income, perc_lose_income) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -328,10 +330,11 @@ readin_avoided_medical_care_data <- function(sheet, filepath, skip = 5) {
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
 
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(variable, geography, needed_med_care_did_get, needed_med_care_did_not_get, needed_med_care_did_not_report, perc_not_get_med_care) %>%
-    # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    # AS: updated week num to generalize to numbers with two digits
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -396,14 +399,14 @@ readin_food_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, total_food_insecure, total_answered, total,
       percent_food_insecure, percent_answered
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -468,14 +471,14 @@ readin_food_children_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, total_food_insecure_children, total_answered_children, total,
       percent_food_insecure_children, percent_answered_children
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -565,7 +568,7 @@ readin_conf_pay_mortgage_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, perc_conf_pay_mortgage, no_confidence,
@@ -573,7 +576,7 @@ readin_conf_pay_mortgage_data <- function(sheet, filepath, skip = 5) {
       total, did_not_respond_conf, did_not_respond_tenure, owned_free_clear
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -661,7 +664,7 @@ readin_conf_pay_rent_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, perc_conf_pay_rent, no_confidence,
@@ -669,7 +672,7 @@ readin_conf_pay_rent_data <- function(sheet, filepath, skip = 5) {
       total, did_not_respond_conf, did_not_respond_tenure
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -755,14 +758,14 @@ readin_rent_not_paid_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-  
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(
       variable, geography, perc_rent_not_paid, payment_no, payment_yes, payment_deferred,
       total, did_not_respond_conf, did_not_respond_tenure, total_answered, total_not_paid
     ) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -831,11 +834,11 @@ readin_mental_health_anxiety_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(variable, geography, anxiety_signs) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -909,9 +912,10 @@ readin_mental_health_depression_data <- function(sheet, filepath, skip = 5) {
 
   # AS: store wk_num as separate varaiable in order to correctly collect week number for week 2
   # to create week_num variable in line 679
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   wk_num <- ifelse(filepath == "data/raw-data/health2b_wk2-full.xlsx",
     "wk2",
-    str_sub(filepath, -8, -6)
+    wk_num
   )
 
   result <- data_by_race %>%
@@ -976,11 +980,11 @@ readin_health_insurance_data <- function(sheet, filepath, skip = 5) {
   #          pull(total_comp) %>%
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
-
+  wk_num <- str_match(filepath, "week(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(variable, geography, insured_public, uninsured) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -1048,10 +1052,11 @@ readin_employment_data <- function(sheet, filepath, skip = 5) {
   #          discard(is.na) %>%
   #          round(1) %==% data_by_race$total %>% discard(is.na) %>% round(1))
 
+  wk_num <- str_match(filepath, "_(.*?).xlsx")[,2]
   result <- data_by_race %>%
     select(variable, geography, entrepreneurship_health) %>%
     # MM: this assumes the week is single digit, and that the file name is standardized
-    mutate(week_num = str_sub(filepath, -8, -6))
+    mutate(week_num = wk_num)
   return(result)
 }
 
@@ -1162,7 +1167,7 @@ generate_table_data <- function(table_var, week_num) {
   return(table_data)
 }
 
-CUR_WEEK <- 9
+CUR_WEEK <- 10
 week_num <- 1:CUR_WEEK
 
 
