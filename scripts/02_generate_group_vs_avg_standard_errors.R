@@ -305,7 +305,10 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     left_join(geo_xwalk, by = "geo_col")
 
   # for testing (as running on all 4080 combintaions takes up too much RAM)
-  #full_combo = full_combo %>% filter(race_indicator %in% c("black", "total") , metric == "rent_paid_last_month")
+  full_combo = full_combo %>% 
+    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
+                         "spend_stimulus", "spend_savings"),
+           week %in% c("wk7_8", "wk8_9", "wk9_10"))
 
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
@@ -403,6 +406,12 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
     race_indicator = race_indicators,
     week = wks
   )
+  
+  # filter to new vars/ relevant weeks
+  full_combo = full_combo %>% 
+    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
+                         "spend_stimulus", "spend_savings"),
+           week %in% c("wk7_8", "wk8_9", "wk9_10"))
 
   # get mean and se for diff bw subgroup and (total population -subgroup)
   se_info <- full_combo %>% pmap_df(get_se_diff_us)
@@ -417,19 +426,22 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
 }
 
 
-metrics <- c(
-  "uninsured",
-  "insured_public",
-  "inc_loss",
-  "expect_inc_loss",
-  "rent_not_conf",
-  "mortgage_not_conf",
-  "rent_not_paid",
-  "mortgage_not_paid",
-  "food_insufficient",
-  "classes_cancelled",
-  "depression_anxiety_signs"
-)
+#metrics <- c(
+#  "uninsured",
+#  "insured_public",
+#  "inc_loss",
+#  "expect_inc_loss",
+#  "rent_not_conf",
+#  "mortgage_not_conf",
+#  "rent_not_paid",
+#  "mortgage_not_paid",
+#  "food_insufficient",
+#  "classes_cancelled",
+#  "depression_anxiety_signs"
+#)
+
+metrics <- c("stimulus_expenses", "spend_credit", "spend_ui", 
+             "spend_stimulus", "spend_savings")
 race_indicators <- c("black", "asian", "hispanic", "white", "other", "total")
 
 # Update: ran on c5.4xlarge instance and took 3 hours

@@ -205,6 +205,59 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         # Set NA otherwise
         TRUE ~ NA_real_
       ),
+      # Dummy variable for spending stimulus payment on expenses
+      # Note that unierse is all persons born before 2002
+      stimulus_expenses = case_when(
+        #if eip not in columns, set NA
+        #!("eip" %in% colnames(df)) ~ NA_real_, 
+        eip == 1 ~ 1,
+        eip %in% c(2, 3) ~ 0,
+        TRUE ~ NA_real_
+      ),
+      spend_credit = case_when(
+        #if spndsrc2 not in columns, set NA
+        #!("spndsrc2" %in% colnames(df)) ~ NA_real_,
+        #set 1 if respondent answered they use credit cards or loans
+        spndsrc2 == 1 ~ 1,
+        # Set 0 if respondent answered atleast one of the spending questions
+        (spndsrc1 >= 0 | spndsrc2 >= 0 | spndsrc3 >= 0 | spndsrc4 >= 0 | 
+           spndsrc5 >= 0 | spndsrc6 >= 0 | spndsrc7 >= 0) ~ 0,
+        # Set NA otherwise
+        TRUE ~ NA_real_
+      ),
+      spend_savings = case_when(
+        #if spndsrc3 not in columns, set NA
+        #!("spndsrc3" %in% colnames(df)) ~ NA_real_,
+        #set 1 if respondent answered they use savings or selling assets
+        spndsrc3 == 1 ~ 1,
+        # Set 0 if respondent answered at least one of the spending questions
+        (spndsrc1 >= 0 | spndsrc2 >= 0 | spndsrc3 >= 0 | spndsrc4 >= 0 | 
+           spndsrc5 >= 0 | spndsrc6 >= 0 | spndsrc7 >= 0) ~ 0,
+        # Set NA otherwise
+        TRUE ~ NA_real_
+      ),
+      spend_ui = case_when(
+        #if spndsrc5 not in columns, set NA
+        #!("spndsrc5" %in% colnames(df)) ~ NA_real_,
+        #set 1 if respondent answered they use creditcards or loans
+        spndsrc5 == 1 ~ 1,
+        # Set 0 if respondent answered at least one of the spending questions
+        (spndsrc1 >= 0 | spndsrc2 >= 0 | spndsrc3 >= 0 | spndsrc4 >= 0 | 
+           spndsrc5 >= 0 | spndsrc6 >= 0 | spndsrc7 >= 0) ~ 0,
+        # Set NA otherwise
+        TRUE ~ NA_real_
+      ),
+      spend_stimulus = case_when(
+        #if spndsrc6 not in columns, set NA
+        #!("spndsrc6" %in% colnames(df)) ~ NA_real_,
+        #set 1 if respondent answered they use creditcards or loans
+        spndsrc6 == 1 ~ 1,
+        # Set 0 if respondent answered atleast one of the child education questions
+        (spndsrc1 >= 0 | spndsrc2 >= 0 | spndsrc3 >= 0 | spndsrc4 >= 0 | 
+           spndsrc5 >= 0 | spndsrc6 >= 0 | spndsrc7 >= 0) ~ 0,
+        # Set NA otherwise
+        TRUE ~ NA_real_
+      ),
       # Score variables for mental health qs. Note we use scoring scheme laid out here:
       # https://www.cdc.gov/nchs/covid19/pulse/mental-health.htm which requires recoding
       # the 4 mental health questions to thier specific scores. If sum of sets of 2 qs
@@ -287,7 +340,8 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
 
 
 CUR_WEEK <- 10
-week_vec <- c(1:CUR_WEEK)
+# change back to 1
+week_vec <- c(7:CUR_WEEK)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named
 # week_num that differentiates microdata from each week.
