@@ -6,14 +6,21 @@ library(here)
 library(srvyr)
 library(survey)
 library(fastDummies)
+library(furrr)
+options(future.globals.maxSize = 3000 * 1024^2)
 
 
 
 ##  Read in and clean data
 
 
-puf_all_weeks <- read_csv(here("data/intermediate-data", "pulse_puf_all_weeks.csv"))
-
+puf_all_weeks <- read_csv(here("data/intermediate-data", "pulse_puf_all_weeks.csv")) %>%
+  mutate(stimulus_expenses = as.numeric(stimulus_expenses),
+         spend_credit = as.numeric(spend_credit),
+         spend_savings = as.numeric(spend_savings),
+         spend_stimulus = as.numeric(spend_stimulus),
+         spend_ui = as.numeric(spend_ui))
+                          
 # Set parameters
 CUR_WEEK <- puf_all_weeks %>%
   pull(week_x) %>%
@@ -321,6 +328,67 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
   return(full_combo_appended)
 }
 
+generate_se_state_and_cbsas_mp <- function(metrics, race_indicators, svy = svy_rolling) {
+  # Wrapper function to calculate all means/SEs and mean/SEs of the difference between
+  # racial group mean and all other racial group mean for all geography/race/
+  # metric/week combinations (except US, which is handled separately)
+  # INPUT:
+  #    metrics: vector of metric column name strings
+  #    race_indicator: vector of race dummy column name strings
+  #    svy: must be an object of the class tbl_svy returned by as_survey_rep()
+  # OUTPUT:
+  #    full_combo_appended: dataframe with mean/SE for each geography/race
+  #    metric/week combination, plus mean/SE for all other races and mean/SE for
+  #    the difference between the given race and all other races
+  
+  
+  cbsa_names <- svy %>%
+    pull(cbsa_title) %>%
+    unique() %>%
+    na.omit()
+  state <- svy %>%
+    pull(state) %>%
+    unique() %>%
+    na.omit()
+  geography <- c(cbsa_names, state)
+  # mirror clean column names created by fastDummies
+  geo_cols <- c(
+    paste0("cbsa_title_", janitor::make_clean_names(cbsa_names)),
+    paste0("state_", janitor::make_clean_names(state))
+  )
+  # crosswalk between geography names and geography dummy column names
+  geo_xwalk <- tibble(geography = geography, geo_col = geo_cols)
+  wks <- svy %>%
+    pull(week_num) %>%
+    unique() %>%
+    na.omit()
+  
+  # Create grid of all metric/reace/geo/week combos
+  full_combo <- expand_grid(
+    metric = metrics,
+    race_indicator = race_indicators,
+    geo_col = geo_cols,
+    week = wks
+  ) %>%
+    left_join(geo_xwalk, by = "geo_col")
+  
+  # for testing (as running on all 4080 combintaions takes up too much RAM)
+  full_combo = full_combo %>% 
+    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
+                         "spend_stimulus", "spend_savings"),
+           week %in% c("wk7_8", "wk8_9", "wk9_10"))
+  
+  # get mean and se for diff bw subgroup and (total population -subgroup)
+  # Call the get_se_diff function on every row of full_combo
+  se_info <- full_combo %>% furrr::future_pmap_dfr(get_se_diff)
+  full_combo_appended <- full_combo %>%
+    bind_cols(se_info) %>%
+    mutate(geo_type = ifelse(geography %in% cbsa_names, "msa", "state")) %>%
+    select(-geo_col)
+  
+  return(full_combo_appended)
+}
+
 get_se_diff_us <- function(..., svy = svy_rolling) {
   # Function to calculate all means/SEs and mean/SEs of the difference between
   # racial group mean and all other racial group mean for a given race/
@@ -447,6 +515,12 @@ race_indicators <- c("black", "asian", "hispanic", "white", "other", "total")
 # Update: ran on c5.4xlarge instance and took 3 hours
 start <- Sys.time()
 all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators = race_indicators)
+end <- Sys.time()
+print(end - start)
+
+plan(multiprocess)
+start <- Sys.time()
+all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
 end <- Sys.time()
 print(end - start)
 
