@@ -6,8 +6,8 @@ library(here)
 library(srvyr)
 library(survey)
 library(fastDummies)
-library(furrr)
-options(future.globals.maxSize = 3000 * 1024^2)
+#library(furrr)
+#options(future.globals.maxSize = 3000 * 1024^2)
 
 
 
@@ -156,48 +156,61 @@ get_se_diff <- function(..., svy = svy_rolling) {
     # if race indicator is total, then we compute mean of the geography,
     # and compare it to the mean of national estimates
     geo_formula <- as.formula(paste0("~", dots$geo_col))
-    x <- svyby(metric_formula, geo_formula, svy %>%
-      filter(week_num == dots$week),
-    svymean,
-    na.rm = T,
-    return.replicates = T,
-    covmat = T
-    )
-
-    mean <- x %>%
-      filter(!!sym(dots$geo_col) == 1) %>%
-      pull(!!sym(dots$metric))
-    se <- x %>%
-      filter(!!sym(dots$geo_col) == 1) %>%
-      pull(se) * 2
-    other_mean <- x %>%
-      filter(!!sym(dots$geo_col) == 0) %>%
-      pull(!!sym(dots$metric))
-    other_se <- x %>%
-      filter(!!sym(dots$geo_col) == 0) %>%
-      pull(se)
-
-    # Use svycontrast to calculate se bw geography and national estimates
-    contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
-    diff_mean <- contrast %>% as.numeric()
-    diff_se <- contrast %>%
-      attr("var") %>%
-      sqrt() %>%
+    result <- tryCatch(
       {
-        . * 2
-      }
+        x <- svyby(metric_formula, geo_formula, svy %>%
+          srvyr::filter(week_num == dots$week),
+          svymean,
+          na.rm = T,
+          return.replicates = T,
+          covmat = T
+          )
 
-    result <- tibble(
-      mean = mean,
-      se = se,
-      other_mean = other_mean,
-      other_se = other_se,
-      diff_mean = diff_mean,
-      diff_se = diff_se
+      mean <- x %>%
+        filter(!!sym(dots$geo_col) == 1) %>%
+        pull(!!sym(dots$metric))
+      se <- x %>%
+        filter(!!sym(dots$geo_col) == 1) %>%
+        pull(se) * 2
+      other_mean <- x %>%
+        filter(!!sym(dots$geo_col) == 0) %>%
+        pull(!!sym(dots$metric))
+      other_se <- x %>%
+        filter(!!sym(dots$geo_col) == 0) %>%
+        pull(se)
+  
+      # Use svycontrast to calculate se bw geography and national estimates
+      contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
+      diff_mean <- contrast %>% as.numeric()
+      diff_se <- contrast %>%
+        attr("var") %>%
+        sqrt() %>%
+        {
+          . * 2
+        }
+  
+      result <- tibble(
+        mean = mean,
+        se = se,
+        other_mean = other_mean,
+        other_se = other_se,
+        diff_mean = diff_mean,
+        diff_se = diff_se
+      ) },
+      error = function(err) {
+        data <- tibble(
+          mean = NA,
+          se = 0,
+          other_mean = NA,
+          other_se = 0,
+          diff_mean = 0,
+          diff_se = 0
+        )
+        return(data)
+      }
     )
-  }
   # if race_indicator isn't total, then compare subgroup to geography avg
-  else {
+   } else {
     # identify whether geography is state or cbsa
     geo_col_name <- ifelse(grepl("cbsa", dots$geo_col, fixed = TRUE), "cbsa_title", "state")
 
@@ -208,8 +221,8 @@ get_se_diff <- function(..., svy = svy_rolling) {
         # Use svyby to compute mean (and replicate means) for race and non race var population
         # (ie black and nonblack population)
         x <- svyby(metric_formula, race_formula, svy %>%
-          filter(!!sym(geo_col_name) == dots$geography) %>%
-          filter(week_num == dots$week),
+          srvyr::filter(!!sym(geo_col_name) == dots$geography) %>%
+          srvyr::filter(week_num == dots$week),
         svymean,
         na.rm = T,
         return.replicates = T,
@@ -313,10 +326,9 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
 
   # for testing (as running on all 4080 combintaions takes up too much RAM)
   full_combo = full_combo %>% 
-    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
-                         "spend_stimulus", "spend_savings"),
-           week %in% c("wk7_8", "wk8_9", "wk9_10"))
+    filter(week %in% c("wk10_11", "wk11_12"))
 
+  #, "spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
   se_info <- full_combo %>% pmap_df(get_se_diff)
@@ -374,9 +386,10 @@ generate_se_state_and_cbsas_mp <- function(metrics, race_indicators, svy = svy_r
   
   # for testing (as running on all 4080 combintaions takes up too much RAM)
   full_combo = full_combo %>% 
-    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
-                         "spend_stimulus", "spend_savings"),
-           week %in% c("wk7_8", "wk8_9", "wk9_10"))
+    filter(metric %in% c("stimulus_expenses"),
+           week %in% c("wk8_9", "wk9_10"))
+  
+  #"spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
   
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
@@ -494,22 +507,23 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
 }
 
 
-#metrics <- c(
-#  "uninsured",
-#  "insured_public",
-#  "inc_loss",
-#  "expect_inc_loss",
-#  "rent_not_conf",
-#  "mortgage_not_conf",
-#  "rent_not_paid",
-#  "mortgage_not_paid",
-#  "food_insufficient",
-#  "classes_cancelled",
-#  "depression_anxiety_signs"
-#)
-
-metrics <- c("stimulus_expenses", "spend_credit", "spend_ui", 
-             "spend_stimulus", "spend_savings")
+metrics <- c(
+  "uninsured",
+  "insured_public",
+  "inc_loss",
+  "expect_inc_loss",
+  "rent_not_conf",
+  "mortgage_not_conf",
+  "rent_not_paid",
+  "mortgage_not_paid",
+  "food_insufficient",
+  "classes_cancelled",
+  "depression_anxiety_signs",
+  "stimulus_expenses", 
+  "spend_credit", 
+  "spend_ui", 
+  "spend_stimulus", 
+  "spend_savings")
 race_indicators <- c("black", "asian", "hispanic", "white", "other", "total")
 
 # Update: ran on c5.4xlarge instance and took 3 hours
@@ -518,7 +532,7 @@ all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators =
 end <- Sys.time()
 print(end - start)
 
-plan(multiprocess)
+plan(multiprocess, workers = 4)
 start <- Sys.time()
 all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
 end <- Sys.time()

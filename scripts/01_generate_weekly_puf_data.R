@@ -350,9 +350,9 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
 }
 
 
-CUR_WEEK <- 10
+CUR_WEEK <- 12
 # change back to 1
-week_vec <- c(6:CUR_WEEK)
+week_vec <- c(1:CUR_WEEK)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named
 # week_num that differentiates microdata from each week.
