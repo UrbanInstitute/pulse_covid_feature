@@ -6,8 +6,8 @@ library(here)
 library(srvyr)
 library(survey)
 library(fastDummies)
-#library(furrr)
-#options(future.globals.maxSize = 3000 * 1024^2)
+library(furrr)
+options(future.globals.maxSize = 6000 * 1024^2)
 
 
 
@@ -20,7 +20,7 @@ puf_all_weeks <- read_csv(here("data/intermediate-data", "pulse_puf_all_weeks.cs
          spend_savings = as.numeric(spend_savings),
          spend_stimulus = as.numeric(spend_stimulus),
          spend_ui = as.numeric(spend_ui))
-                          
+
 # Set parameters
 CUR_WEEK <- puf_all_weeks %>%
   pull(week_x) %>%
@@ -81,7 +81,7 @@ svy <- puf_all_weeks %>%
 construct_overlap_intervals_df <- function(x) {
   # INPUT:
   #   x: integer
-
+  
   ### Construct week number vector
   week_vec <- 1:x
   # Get middle weeks and repeat each twice
@@ -90,29 +90,29 @@ construct_overlap_intervals_df <- function(x) {
   # Construct week_num vector where middle numbers are repeated twice
   wk_nums <- c(week_vec[1], middle_nums, tail(week_vec, n = 1))
   wk_nums <- paste0("wk", wk_nums)
-
-
-
+  
+  
+  
   ### Construct week_Average vector
   interval_vec <- c()
   while (x != 1) {
     previous_num <- x - 1
     interval <- paste0("wk", previous_num, "_", x)
     interval_vec <- c(interval_vec, interval)
-
+    
     x <- x - 1
   }
   # sort alphabetically and repeat each twice
   wk_int <- sort(interval_vec) %>% rep(each = 2)
-
+  
   ### Create dataframe
   result <- tibble(
     week_num = wk_nums,
     week_int = wk_int
   )
-
-
-
+  
+  
+  
   return(result)
 }
 
@@ -148,10 +148,10 @@ get_se_diff <- function(..., svy = svy_rolling) {
   #    metric/week combination, plus mean/SE for all other races and mean/SE for
   #    the difference between the given race and all other races
   dots <- list(...)
-
+  
   metric_formula <- as.formula(paste0("~", dots$metric))
   race_formula <- as.formula(paste0("~", dots$race_indicator))
-
+  
   if (dots$race_indicator == "total") {
     # if race indicator is total, then we compute mean of the geography,
     # and compare it to the mean of national estimates
@@ -159,44 +159,44 @@ get_se_diff <- function(..., svy = svy_rolling) {
     result <- tryCatch(
       {
         x <- svyby(metric_formula, geo_formula, svy %>%
-          srvyr::filter(week_num == dots$week),
-          svymean,
-          na.rm = T,
-          return.replicates = T,
-          covmat = T
-          )
-
-      mean <- x %>%
-        filter(!!sym(dots$geo_col) == 1) %>%
-        pull(!!sym(dots$metric))
-      se <- x %>%
-        filter(!!sym(dots$geo_col) == 1) %>%
-        pull(se) * 2
-      other_mean <- x %>%
-        filter(!!sym(dots$geo_col) == 0) %>%
-        pull(!!sym(dots$metric))
-      other_se <- x %>%
-        filter(!!sym(dots$geo_col) == 0) %>%
-        pull(se)
-  
-      # Use svycontrast to calculate se bw geography and national estimates
-      contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
-      diff_mean <- contrast %>% as.numeric()
-      diff_se <- contrast %>%
-        attr("var") %>%
-        sqrt() %>%
-        {
-          . * 2
-        }
-  
-      result <- tibble(
-        mean = mean,
-        se = se,
-        other_mean = other_mean,
-        other_se = other_se,
-        diff_mean = diff_mean,
-        diff_se = diff_se
-      ) },
+                     srvyr::filter(week_num == dots$week),
+                   svymean,
+                   na.rm = T,
+                   return.replicates = T,
+                   covmat = T
+        )
+        
+        mean <- x %>%
+          filter(!!sym(dots$geo_col) == 1) %>%
+          pull(!!sym(dots$metric))
+        se <- x %>%
+          filter(!!sym(dots$geo_col) == 1) %>%
+          pull(se) * 2
+        other_mean <- x %>%
+          filter(!!sym(dots$geo_col) == 0) %>%
+          pull(!!sym(dots$metric))
+        other_se <- x %>%
+          filter(!!sym(dots$geo_col) == 0) %>%
+          pull(se)
+        
+        # Use svycontrast to calculate se bw geography and national estimates
+        contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
+        diff_mean <- contrast %>% as.numeric()
+        diff_se <- contrast %>%
+          attr("var") %>%
+          sqrt() %>%
+          {
+            . * 2
+          }
+        
+        result <- tibble(
+          mean = mean,
+          se = se,
+          other_mean = other_mean,
+          other_se = other_se,
+          diff_mean = diff_mean,
+          diff_se = diff_se
+        ) },
       error = function(err) {
         data <- tibble(
           mean = NA,
@@ -209,11 +209,11 @@ get_se_diff <- function(..., svy = svy_rolling) {
         return(data)
       }
     )
-  # if race_indicator isn't total, then compare subgroup to geography avg
-   } else {
+    # if race_indicator isn't total, then compare subgroup to geography avg
+  } else {
     # identify whether geography is state or cbsa
     geo_col_name <- ifelse(grepl("cbsa", dots$geo_col, fixed = TRUE), "cbsa_title", "state")
-
+    
     # Use trycatch bc there are 4 metric-week-geogarphy combinations
     # where there are 0 respondents which return NA and error out
     result <- tryCatch(
@@ -221,14 +221,14 @@ get_se_diff <- function(..., svy = svy_rolling) {
         # Use svyby to compute mean (and replicate means) for race and non race var population
         # (ie black and nonblack population)
         x <- svyby(metric_formula, race_formula, svy %>%
-          srvyr::filter(!!sym(geo_col_name) == dots$geography) %>%
-          srvyr::filter(week_num == dots$week),
-        svymean,
-        na.rm = T,
-        return.replicates = T,
-        covmat = T
+                     srvyr::filter(!!sym(geo_col_name) == dots$geography) %>%
+                     srvyr::filter(week_num == dots$week),
+                   svymean,
+                   na.rm = T,
+                   return.replicates = T,
+                   covmat = T
         )
-
+        
         mean <- x %>%
           filter(!!sym(dots$race_indicator) == 1) %>%
           pull(!!sym(dots$metric))
@@ -241,7 +241,7 @@ get_se_diff <- function(..., svy = svy_rolling) {
         other_se <- x %>%
           filter(!!sym(dots$race_indicator) == 0) %>%
           pull(se)
-
+        
         # Use svycontrast to calulate se bw race and nonrace (ie black and non black) population
         contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
         diff_mean <- contrast %>% as.numeric()
@@ -251,8 +251,8 @@ get_se_diff <- function(..., svy = svy_rolling) {
           {
             . * 2
           }
-
-
+        
+        
         result <- tibble(
           mean = mean,
           se = se,
@@ -276,7 +276,7 @@ get_se_diff <- function(..., svy = svy_rolling) {
       }
     )
   }
-
+  
   return(result)
 }
 
@@ -292,8 +292,8 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
   #    full_combo_appended: dataframe with mean/SE for each geography/race
   #    metric/week combination, plus mean/SE for all other races and mean/SE for
   #    the difference between the given race and all other races
-
-
+  
+  
   cbsa_names <- svy %>%
     pull(cbsa_title) %>%
     unique() %>%
@@ -314,7 +314,7 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     pull(week_num) %>%
     unique() %>%
     na.omit()
-
+  
   # Create grid of all metric/reace/geo/week combos
   full_combo <- expand_grid(
     metric = metrics,
@@ -323,11 +323,11 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     week = wks
   ) %>%
     left_join(geo_xwalk, by = "geo_col")
-
+  
   # for testing (as running on all 4080 combintaions takes up too much RAM)
   full_combo = full_combo %>% 
     filter(week %in% c("wk10_11", "wk11_12"))
-
+  
   #, "spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
@@ -336,9 +336,20 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     bind_cols(se_info) %>%
     mutate(geo_type = ifelse(geography %in% cbsa_names, "msa", "state")) %>%
     select(-geo_col)
-
+  
   return(full_combo_appended)
 }
+
+map_se_diff <- function(full_combo, svy = svy_rolling){
+  # get mean and se for diff bw subgroup and (total population -subgroup)
+  # Call the get_se_diff function on every row of full_combo
+  se_info <- full_combo %>% pmap_dfr(get_se_diff)
+  full_combo_appended <- full_combo %>%
+    bind_cols(se_info) 
+  
+  return(full_combo_appended)
+}
+
 
 generate_se_state_and_cbsas_mp <- function(metrics, race_indicators, svy = svy_rolling) {
   # Wrapper function to calculate all means/SEs and mean/SEs of the difference between
@@ -387,19 +398,15 @@ generate_se_state_and_cbsas_mp <- function(metrics, race_indicators, svy = svy_r
   # for testing (as running on all 4080 combintaions takes up too much RAM)
   full_combo = full_combo %>% 
     filter(metric %in% c("stimulus_expenses"),
-           week %in% c("wk8_9", "wk9_10"))
+           week %in% c("wk10_11", "wk11_12"))
   
-  #"spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
+  full_combo_split <- split(full_combo, full_combo$week)
   
-  # get mean and se for diff bw subgroup and (total population -subgroup)
-  # Call the get_se_diff function on every row of full_combo
-  se_info <- full_combo %>% furrr::future_pmap_dfr(get_se_diff)
-  full_combo_appended <- full_combo %>%
-    bind_cols(se_info) %>%
+  se_info_parallel <- furrr::future_map_dfr(full_combo_split, map_se_diff) %>%
     mutate(geo_type = ifelse(geography %in% cbsa_names, "msa", "state")) %>%
     select(-geo_col)
   
-  return(full_combo_appended)
+  return(se_info_parallel)
 }
 
 get_se_diff_us <- function(..., svy = svy_rolling) {
@@ -415,18 +422,18 @@ get_se_diff_us <- function(..., svy = svy_rolling) {
   #    combination for the US, plus mean/SE for all other races and mean/SE for
   #    the difference between the given race and all other races
   dots <- list(...)
-
+  
   metric_formula <- as.formula(paste0("~", dots$metric))
   race_formula <- as.formula(paste0("~", dots$race_indicator))
-
+  
   x <- svyby(metric_formula, race_formula, svy %>%
-    filter(week_num == dots$week),
-  svymean,
-  na.rm = T,
-  return.replicates = T,
-  covmat = T
+               filter(week_num == dots$week),
+             svymean,
+             na.rm = T,
+             return.replicates = T,
+             covmat = T
   )
-
+  
   mean <- x %>%
     filter(!!sym(dots$race_indicator) == 1) %>%
     pull(!!sym(dots$metric))
@@ -439,7 +446,7 @@ get_se_diff_us <- function(..., svy = svy_rolling) {
   other_se <- x %>%
     filter(!!sym(dots$race_indicator) == 0) %>%
     pull(se)
-
+  
   # Use svycontrast to calulate se bw race and nonrace (ie black and non black) population
   contrast <- svycontrast(x, contrasts = list(diff = c(1, -1)))
   diff_mean <- contrast %>% as.numeric()
@@ -449,7 +456,7 @@ get_se_diff_us <- function(..., svy = svy_rolling) {
     {
       . * 2
     }
-
+  
   result <- tibble(
     mean = mean,
     se = se,
@@ -458,7 +465,7 @@ get_se_diff_us <- function(..., svy = svy_rolling) {
     diff_mean = diff_mean,
     diff_se = diff_se
   )
-
+  
   return(result)
 }
 
@@ -474,14 +481,14 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
   #    full_combo_appended: dataframe with mean/SE for each race/metric/week
   #    combination for the US, plus mean/SE for all other races and mean/SE for
   #    the difference between the given race and all other races
-
+  
   wks <- svy %>%
     pull(week_num) %>%
     unique() %>%
     na.omit()
-
+  
   race_indicators <- race_indicators[-6]
-
+  
   full_combo <- expand_grid(
     metric = metrics,
     race_indicator = race_indicators,
@@ -493,7 +500,7 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
     filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
                          "spend_stimulus", "spend_savings"),
            week %in% c("wk7_8", "wk8_9", "wk9_10"))
-
+  
   # get mean and se for diff bw subgroup and (total population -subgroup)
   se_info <- full_combo %>% pmap_df(get_se_diff_us)
   full_combo_appended <- full_combo %>%
@@ -502,7 +509,7 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
       geo_type = "national",
       geography = "US"
     )
-
+  
   return(full_combo_appended)
 }
 
@@ -526,93 +533,11 @@ metrics <- c(
   "spend_savings")
 race_indicators <- c("black", "asian", "hispanic", "white", "other", "total")
 
-# Update: ran on c5.4xlarge instance and took 3 hours
-start <- Sys.time()
-all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators = race_indicators)
-end <- Sys.time()
-print(end - start)
-
-plan(multiprocess, workers = 4)
+future::supportsMulticore()
+plan(multiprocess, workers = 2)
 start <- Sys.time()
 all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
 end <- Sys.time()
 print(end - start)
 
-write.csv(all_diff_ses, here("data/intermediate-data", "all_diff_ses.csv"))
-
-start <- Sys.time()
-us_diff_ses <- generate_se_us(metrics = metrics, race_indicators = race_indicators)
-end <- Sys.time()
-print(end - start)
-
-write.csv(us_diff_ses, here("data/intermediate-data", "us_diff_ses.csv"))
-
-# functions to calculate US total means/SEs
-calculate_se_us_total <- function(metric, svy) {
-  se_df <- svy %>%
-    filter(!is.na(!!sym(metric))) %>%
-    group_by(week_num) %>%
-    summarise(mean = survey_mean(!!sym(metric), na.rm = TRUE)) %>%
-    # pull(out) %>%
-    mutate(
-      se = mean_se * 2,
-      metric = metric,
-      geography = "US",
-      race_var = "total"
-    ) %>%
-    select(week_num, geography, race_var, mean, se, metric)
-
-  return(se_df)
-}
-
-format_feature_total <- function(data, geo) {
-  data <- data %>%
-    mutate(
-      moe_95 = se * 1.96,
-      moe_95_lb = mean - moe_95,
-      moe_95_ub = mean + moe_95,
-      geo_type = geo
-    ) %>%
-    select(geography, metric, week_num, race_var, mean, se, moe_95, moe_95_lb, moe_95_ub, geo_type)
-
-  return(data)
-}
-
-# calculate US-wide means for each metric/week
-us_rolling_total <- map_df(metrics, calculate_se_us_total, svy = svy_rolling)
-write.csv(us_rolling_total, here("data/intermediate-data", str_glue("us_rolling_total_se_to_week{CUR_WEEK}.csv")))
-
-# Write out svy_roling object as an RDS object for use in QC scipts
-saveRDS(svy_rolling, file = "data/intermediate-data/svy_rolling.rds")
-
-us_total_rolling_out <- format_feature_total(us_rolling_total, "national")
-
-all_diff_ses_out <- all_diff_ses %>%
-  mutate(
-    moe_95 = se * 1.96,
-    moe_95_lb = mean - moe_95,
-    moe_95_ub = mean + moe_95,
-    sigdiff = ifelse(abs(diff_mean / diff_se) > 1.96, 1, 0)
-  ) %>%
-  rename(
-    race_var = race_indicator,
-    week_num = week
-  ) %>%
-  select(-other_mean, -other_se, -diff_mean, -diff_se)
-
-us_diff_ses_out <- us_diff_ses %>%
-  mutate(
-    moe_95 = se * 1.96,
-    moe_95_lb = mean - moe_95,
-    moe_95_ub = mean + moe_95,
-    sigdiff = ifelse(abs(diff_mean / diff_se) > 1.96, 1, 0)
-  ) %>%
-  rename(
-    race_var = race_indicator,
-    week_num = week
-  ) %>%
-  select(-other_mean, -other_se, -diff_mean, -diff_se)
-
-
-rolling_all <- bind_rows(all_diff_ses_out, us_diff_ses_out, us_total_rolling_out)
-write_csv(rolling_all, here("data/final-data", "rolling_all_to_current_week.csv"))
+write.csv(all_diff_ses_mp, here("data/intermediate-data", "all_diff_ses.csv"))
