@@ -618,7 +618,9 @@ us_diff_ses_out <- us_diff_ses %>%
 
 rolling_all <- bind_rows(all_diff_ses_out, us_diff_ses_out, us_total_rolling_out)
 
-rolling_all <- read_csv(here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
+rolling_all <- read_csv(here("data/final-data", "rolling_all_to_current_week.csv")) %>%
+  select(-date_int)
+
 week_crosswalk <- tibble::tribble(
   ~week_num, ~date_int,
   "wk1_2", paste("Apr. 23\u2013", "May 12", sep = ""),
@@ -635,10 +637,14 @@ week_crosswalk <- tibble::tribble(
   
 )
 
-data_out <- left_join(rolling_all, week_crosswalk, by = "week_num")
+data_out <- left_join(rolling_all, week_crosswalk, by = "week_num") %>%
+  arrange(metric, race_var, geography,
+          factor(week_num, 
+                 levels = c("wk1_2", "wk2_3", "wk3_4", "wk4_5", "wk5_6", "wk6_7", "wk7_8", 
+                            "wk8_9", "wk9_10", "wk10_11", "wk11_12")))
 
-write_csv(data_out, here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
-rolling_all_to_10 <- read_csv(here("data/final-data", "rolling_all_to_current_week_to_10.csv")) %>%
-  select(-X1)
-all_data <- rbind(data_out, rolling_all_to_10)
-write_csv(all_data, here("data/final-data", "rolling_all_to_current_week.csv"))
+#write_csv(data_out, here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
+#rolling_all_to_10 <- read_csv(here("data/final-data", "rolling_all_to_current_week_to_10.csv")) %>%
+#  select(-X1)
+#all_data <- rbind(data_out, rolling_all_to_10)
+write_csv(data_out, here("data/final-data", "rolling_all_to_current_week.csv"))
