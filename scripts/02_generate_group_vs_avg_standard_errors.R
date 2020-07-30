@@ -103,7 +103,10 @@ construct_overlap_intervals_df <- function(x) {
     x <- x - 1
   }
   # sort alphabetically and repeat each twice
-  wk_int <- sort(interval_vec) %>% rep(each = 2)
+  #wk_int <- sort(interval_vec) %>% rep(each = 2)
+  
+  #reverse order and repeat each twice
+  wk_int <- rev(interval_vec) %>% rep(each = 2)
 
   ### Create dataframe
   result <- tibble(
@@ -420,7 +423,7 @@ get_se_diff_us <- function(..., svy = svy_rolling) {
   race_formula <- as.formula(paste0("~", dots$race_indicator))
 
   x <- svyby(metric_formula, race_formula, svy %>%
-    filter(week_num == dots$week),
+    srvyr::filter(week_num == dots$week),
   svymean,
   na.rm = T,
   return.replicates = T,
@@ -490,9 +493,7 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
   
   # filter to new vars/ relevant weeks
   full_combo = full_combo %>% 
-    filter(metric %in% c("stimulus_expenses", "spend_credit", "spend_ui", 
-                         "spend_stimulus", "spend_savings"),
-           week %in% c("wk7_8", "wk8_9", "wk9_10"))
+    filter(week %in% c("wk10_11", "wk11_12"))
 
   # get mean and se for diff bw subgroup and (total population -subgroup)
   se_info <- full_combo %>% pmap_df(get_se_diff_us)
@@ -532,11 +533,11 @@ all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators =
 end <- Sys.time()
 print(end - start)
 
-plan(multiprocess, workers = 4)
-start <- Sys.time()
-all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
-end <- Sys.time()
-print(end - start)
+#plan(multiprocess, workers = 4)
+#start <- Sys.time()
+#all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
+#end <- Sys.time()
+#print(end - start)
 
 write.csv(all_diff_ses, here("data/intermediate-data", "all_diff_ses.csv"))
 
@@ -550,7 +551,8 @@ write.csv(us_diff_ses, here("data/intermediate-data", "us_diff_ses.csv"))
 # functions to calculate US total means/SEs
 calculate_se_us_total <- function(metric, svy) {
   se_df <- svy %>%
-    filter(!is.na(!!sym(metric))) %>%
+    srvyr::filter(!is.na(!!sym(metric))) %>%
+    srvyr::filter(week_num %in% c("wk11_12", "wk10_11")) %>%
     group_by(week_num) %>%
     summarise(mean = survey_mean(!!sym(metric), na.rm = TRUE)) %>%
     # pull(out) %>%
@@ -615,4 +617,28 @@ us_diff_ses_out <- us_diff_ses %>%
 
 
 rolling_all <- bind_rows(all_diff_ses_out, us_diff_ses_out, us_total_rolling_out)
-write_csv(rolling_all, here("data/final-data", "rolling_all_to_current_week.csv"))
+
+rolling_all <- read_csv(here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
+week_crosswalk <- tibble::tribble(
+  ~week_num, ~date_int,
+  "wk1_2", paste("Apr. 23\u2013", "May 12", sep = ""),
+  "wk2_3", paste("May 7\u2013", "19", sep = ""),
+  "wk3_4", paste("May 14\u2013", "26", sep = ""),
+  "wk4_5", paste("May 21\u2013", "June 2", sep = ""),
+  "wk5_6", paste("May 28\u2013", "June 9", sep = ""),
+  "wk6_7", paste("June 4\u2013", "16", sep = ""),
+  "wk7_8", paste("June 11\u2013", "23", sep = ""),
+  "wk8_9", paste("June 18\u2013", "30", sep = ""),
+  "wk9_10", paste("June 25\u2013", "July 7", sep = ""),
+  "wk10_11", paste("July 2\u2013", "14", sep = ""),
+  "wk11_12", paste("July 9\u2013", "21", sep = "")
+  
+)
+
+data_out <- left_join(rolling_all, week_crosswalk, by = "week_num")
+
+write_csv(data_out, here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
+rolling_all_to_10 <- read_csv(here("data/final-data", "rolling_all_to_current_week_to_10.csv")) %>%
+  select(-X1)
+all_data <- rbind(data_out, rolling_all_to_10)
+write_csv(all_data, here("data/final-data", "rolling_all_to_current_week.csv"))
