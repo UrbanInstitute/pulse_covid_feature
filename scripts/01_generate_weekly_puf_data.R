@@ -22,8 +22,15 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
   #   9) indicator variable for if a person has low to no confidence in paying mortgage next month or has already deferred (mortgage_not_conf)
   #   10)joint indicator variable for if a person has either 8 or 9, (payment_not_conf)
   #   11)adjusted score columns for the mental health questions
-  #   12)indicator variables for if a person displays signs of anxiety (anxiety_signs)
-  #   13)indicator variabels for if a person displays signs of depression (depression_signs)
+  #   12)indicator variable for if a person displays signs of anxiety (anxiety_signs)
+  #   13)indicator variable for if a person displays signs of depression (depression_signs)
+  #   14) indicator variable for if a person did not pay rent last month or has already deferred (rent_not_paid)
+  #   15) indicator variable for if a person did not pay mortgage last month or has already deferred (mortgage_not_paid)
+  #   16) indicator variable for if a person that received stimulus payment used it on expenses (stimulus_expenses)
+  #   17) indicator variable for if a person used credit cards or loans to meet spending needs in past 7 days (spend_credit)
+  #   18) indicator variable for if a person used savings to meet spending needs in past 7 days (spend_savings)
+  #   19) indicator variable for if a person used UI benefits to meet spending needs in past 7 days (spend_ui)
+  #   20) indicator variable for if a person used stimulus payment to meet spending needs in past 7 days (spend_stimulus)
 
 
   # INPUT:
@@ -351,7 +358,6 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
 
 
 CUR_WEEK <- 12
-# change back to 1
 week_vec <- c(1:CUR_WEEK)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named

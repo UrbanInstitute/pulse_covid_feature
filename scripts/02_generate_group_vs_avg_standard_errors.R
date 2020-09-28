@@ -6,14 +6,8 @@ library(here)
 library(srvyr)
 library(survey)
 library(fastDummies)
-#library(furrr)
-#options(future.globals.maxSize = 3000 * 1024^2)
-
-
 
 ##  Read in and clean data
-
-
 puf_all_weeks <- read_csv(here("data/intermediate-data", "pulse_puf_all_weeks.csv")) %>%
   mutate(stimulus_expenses = as.numeric(stimulus_expenses),
          spend_credit = as.numeric(spend_credit),
@@ -102,8 +96,6 @@ construct_overlap_intervals_df <- function(x) {
 
     x <- x - 1
   }
-  # sort alphabetically and repeat each twice
-  #wk_int <- sort(interval_vec) %>% rep(each = 2)
   
   #reverse order and repeat each twice
   wk_int <- rev(interval_vec) %>% rep(each = 2)
@@ -327,11 +319,10 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
   ) %>%
     left_join(geo_xwalk, by = "geo_col")
 
-  # for testing (as running on all 4080 combintaions takes up too much RAM)
-  full_combo = full_combo %>% 
-    filter(week %in% c("wk10_11", "wk11_12"))
+  # for testing (as running on all combintaions takes up too much RAM)
+  # full_combo = full_combo %>% 
+  #   filter(week %in% c("wk10_11", "wk11_12"))
 
-  #, "spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
   # get mean and se for diff bw subgroup and (total population -subgroup)
   # Call the get_se_diff function on every row of full_combo
   se_info <- full_combo %>% pmap_df(get_se_diff)
@@ -340,68 +331,6 @@ generate_se_state_and_cbsas <- function(metrics, race_indicators, svy = svy_roll
     mutate(geo_type = ifelse(geography %in% cbsa_names, "msa", "state")) %>%
     select(-geo_col)
 
-  return(full_combo_appended)
-}
-
-generate_se_state_and_cbsas_mp <- function(metrics, race_indicators, svy = svy_rolling) {
-  # Wrapper function to calculate all means/SEs and mean/SEs of the difference between
-  # racial group mean and all other racial group mean for all geography/race/
-  # metric/week combinations (except US, which is handled separately)
-  # INPUT:
-  #    metrics: vector of metric column name strings
-  #    race_indicator: vector of race dummy column name strings
-  #    svy: must be an object of the class tbl_svy returned by as_survey_rep()
-  # OUTPUT:
-  #    full_combo_appended: dataframe with mean/SE for each geography/race
-  #    metric/week combination, plus mean/SE for all other races and mean/SE for
-  #    the difference between the given race and all other races
-  
-  
-  cbsa_names <- svy %>%
-    pull(cbsa_title) %>%
-    unique() %>%
-    na.omit()
-  state <- svy %>%
-    pull(state) %>%
-    unique() %>%
-    na.omit()
-  geography <- c(cbsa_names, state)
-  # mirror clean column names created by fastDummies
-  geo_cols <- c(
-    paste0("cbsa_title_", janitor::make_clean_names(cbsa_names)),
-    paste0("state_", janitor::make_clean_names(state))
-  )
-  # crosswalk between geography names and geography dummy column names
-  geo_xwalk <- tibble(geography = geography, geo_col = geo_cols)
-  wks <- svy %>%
-    pull(week_num) %>%
-    unique() %>%
-    na.omit()
-  
-  # Create grid of all metric/reace/geo/week combos
-  full_combo <- expand_grid(
-    metric = metrics,
-    race_indicator = race_indicators,
-    geo_col = geo_cols,
-    week = wks
-  ) %>%
-    left_join(geo_xwalk, by = "geo_col")
-  
-  # for testing (as running on all 4080 combintaions takes up too much RAM)
-  full_combo = full_combo %>% 
-    filter(metric %in% c("stimulus_expenses"),
-           week %in% c("wk8_9", "wk9_10"))
-  
-  #"spend_credit", "spend_ui", "spend_stimulus", "spend_savings"
-  
-  # get mean and se for diff bw subgroup and (total population -subgroup)
-  # Call the get_se_diff function on every row of full_combo
-  se_info <- full_combo %>% furrr::future_pmap_dfr(get_se_diff)
-  full_combo_appended <- full_combo %>%
-    bind_cols(se_info) %>%
-    mutate(geo_type = ifelse(geography %in% cbsa_names, "msa", "state")) %>%
-    select(-geo_col)
-  
   return(full_combo_appended)
 }
 
@@ -491,9 +420,9 @@ generate_se_us <- function(metrics, race_indicators, svy = svy_rolling) {
     week = wks
   )
   
-  # filter to new vars/ relevant weeks
-  full_combo = full_combo %>% 
-    filter(week %in% c("wk10_11", "wk11_12"))
+  # filter to new vars/ relevant weeks for testing
+  #full_combo = full_combo %>% 
+  #  filter(week %in% c("wk10_11", "wk11_12"))
 
   # get mean and se for diff bw subgroup and (total population -subgroup)
   se_info <- full_combo %>% pmap_df(get_se_diff_us)
@@ -533,12 +462,6 @@ all_diff_ses <- generate_se_state_and_cbsas(metrics = metrics, race_indicators =
 end <- Sys.time()
 print(end - start)
 
-#plan(multiprocess, workers = 4)
-#start <- Sys.time()
-#all_diff_ses_mp <- generate_se_state_and_cbsas_mp(metrics = metrics, race_indicators = race_indicators)
-#end <- Sys.time()
-#print(end - start)
-
 write.csv(all_diff_ses, here("data/intermediate-data", "all_diff_ses.csv"))
 
 start <- Sys.time()
@@ -552,7 +475,6 @@ write.csv(us_diff_ses, here("data/intermediate-data", "us_diff_ses.csv"))
 calculate_se_us_total <- function(metric, svy) {
   se_df <- svy %>%
     srvyr::filter(!is.na(!!sym(metric))) %>%
-    srvyr::filter(week_num %in% c("wk11_12", "wk10_11")) %>%
     group_by(week_num) %>%
     summarise(mean = survey_mean(!!sym(metric), na.rm = TRUE)) %>%
     # pull(out) %>%
@@ -618,22 +540,19 @@ us_diff_ses_out <- us_diff_ses %>%
 
 rolling_all <- bind_rows(all_diff_ses_out, us_diff_ses_out, us_total_rolling_out)
 
-rolling_all <- read_csv(here("data/final-data", "rolling_all_to_current_week.csv")) %>%
-  select(-date_int)
-
 week_crosswalk <- tibble::tribble(
   ~week_num, ~date_int,
-  "wk1_2", paste("Apr. 23\u2013", "May 12", sep = ""),
-  "wk2_3", paste("May 7\u2013", "19", sep = ""),
-  "wk3_4", paste("May 14\u2013", "26", sep = ""),
-  "wk4_5", paste("May 21\u2013", "June 2", sep = ""),
-  "wk5_6", paste("May 28\u2013", "June 9", sep = ""),
-  "wk6_7", paste("June 4\u2013", "16", sep = ""),
-  "wk7_8", paste("June 11\u2013", "23", sep = ""),
-  "wk8_9", paste("June 18\u2013", "30", sep = ""),
-  "wk9_10", paste("June 25\u2013", "July 7", sep = ""),
-  "wk10_11", paste("July 2\u2013", "14", sep = ""),
-  "wk11_12", paste("July 9\u2013", "21", sep = "")
+  "wk1_2", paste("4/23\u2013", "5/12", sep = ""),
+  "wk2_3", paste("5/7\u2013", "5/19", sep = ""),
+  "wk3_4", paste("5/14\u2013", "5/26", sep = ""),
+  "wk4_5", paste("5/21\u2013", "6/2", sep = ""),
+  "wk5_6", paste("5/28\u2013", "6/9", sep = ""),
+  "wk6_7", paste("6/4\u2013", "6/16", sep = ""),
+  "wk7_8", paste("6/11\u2013", "6/23", sep = ""),
+  "wk8_9", paste("6/18\u2013", "6/30", sep = ""),
+  "wk9_10", paste("6/25\u2013", "7/7", sep = ""),
+  "wk10_11", paste("7/2\u2013", "7/14", sep = ""),
+  "wk11_12", paste("7/9\u2013", "7/21", sep = "")
   
 )
 
@@ -643,8 +562,4 @@ data_out <- left_join(rolling_all, week_crosswalk, by = "week_num") %>%
                  levels = c("wk1_2", "wk2_3", "wk3_4", "wk4_5", "wk5_6", "wk6_7", "wk7_8", 
                             "wk8_9", "wk9_10", "wk10_11", "wk11_12")))
 
-#write_csv(data_out, here("data/final-data", "rolling_all_to_current_week_11_12.csv"))
-#rolling_all_to_10 <- read_csv(here("data/final-data", "rolling_all_to_current_week_to_10.csv")) %>%
-#  select(-X1)
-#all_data <- rbind(data_out, rolling_all_to_10)
 write_csv(data_out, here("data/final-data", "rolling_all_to_current_week.csv"))

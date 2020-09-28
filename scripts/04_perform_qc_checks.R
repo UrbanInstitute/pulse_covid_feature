@@ -1300,8 +1300,6 @@ construct_overlap_intervals_df <- function(x) {
 
     x <- x - 1
   }
-  # sort alphabetically and repeat each twice
-  #wk_int <- sort(interval_vec) %>% rep(each = 2)
   
   #reverse order and repeat each twice
   wk_int <- rev(interval_vec) %>% rep(each = 2)
