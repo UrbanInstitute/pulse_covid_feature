@@ -226,15 +226,11 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
       # Dummy variable for spending stimulus payment on expenses
       # Note that universe is all persons born before 2002
       stimulus_expenses = as.numeric(case_when(
-        #if eip not in columns, set NA
-        #!("eip" %in% colnames(.)) ~ NA_real_, 
         eip == 1 ~ 1,
         eip %in% c(2, 3) ~ 0,
         TRUE ~ NA_real_
       )),
       spend_credit = as.numeric(case_when(
-        #if spndsrc2 not in columns, set NA
-        #!("spndsrc2" %in% colnames(.)) ~ NA_real_,
         #set 1 if respondent answered they use credit cards or loans
         spndsrc2 == 1 ~ 1,
         # Set 0 if respondent answered atleast one of the spending questions
@@ -244,8 +240,6 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         TRUE ~ NA_real_
       )),
       spend_savings = as.numeric(case_when(
-        #if spndsrc3 not in columns, set NA
-        #!("spndsrc3" %in% colnames(.)) ~ NA_real_,
         #set 1 if respondent answered they use savings or selling assets
         spndsrc3 == 1 ~ 1,
         # Set 0 if respondent answered at least one of the spending questions
@@ -255,8 +249,6 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         TRUE ~ NA_real_
       )),
       spend_ui = as.numeric(case_when(
-        #if spndsrc5 not in columns, set NA
-        #!("spndsrc5" %in% colnames(.)) ~ NA_real_,
         #set 1 if respondent answered they use creditcards or loans
         spndsrc5 == 1 ~ 1,
         # Set 0 if respondent answered at least one of the spending questions
@@ -266,8 +258,6 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
         TRUE ~ NA_real_
       )),
       spend_stimulus = as.numeric(case_when(
-        #if spndsrc6 not in columns, set NA
-        #!("spndsrc6" %in% colnames(.)) ~ NA_real_,
         #set 1 if respondent answered they use creditcards or loans
         spndsrc6 == 1 ~ 1,
         # Set 0 if respondent answered atleast one of the child education questions
