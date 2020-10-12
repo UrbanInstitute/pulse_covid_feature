@@ -346,14 +346,119 @@ download_and_clean_puf_data <- function(week_num, output_filepath = "data/raw-da
   return(df_clean)
 }
 
+calculate_response_rate_metrics <- function(df_clean) {
+  metrics_no_elig <- c(
+    "hisp_rrace",
+    "uninsured",
+    "insured_public",
+    "inc_loss",
+    "expect_inc_loss",
+    "food_insufficient",
+    "depression_anxiety_signs",
+    "spend_credit", 
+    "spend_ui", 
+    "spend_stimulus", 
+    "spend_savings"
+  )
+  
+  elig_pct <- df_clean %>%
+    mutate(elig_classes_cancelled = case_when(enroll1 == 1 ~ 1, 
+                                                   enroll2 == 1 | enroll3 == 1 ~ 0,
+                                                   T ~ NA_real_),
+            elig_rent = case_when(tenure == 3 ~ 1, 
+                                               tenure > 0 ~ 0,
+                                               T ~ NA_real_),
+            elig_mortgage= case_when(tenure == 2 ~ 1, 
+                                                   tenure > 0 ~ 0,
+                                                   T ~ NA_real_)) %>%
+    summarise(across(starts_with("elig"), ~mean(.x, na.rm = TRUE)))
+  
+  answered_df <- df_clean %>% 
+    mutate(across(metrics_no_elig, ~if_else(is.na(.), 0, 1), .names = "answered_{.col}")) %>%
+    rowwise() %>%
+    mutate(answered_classes_cancelled = case_when((enroll1 == 1) & (!is.na(classes_cancelled)) ~ 1, 
+                                               (enroll1 == 1) & (is.na(classes_cancelled)) ~ 0,
+                                               runif(1) < elig_pct$elig_classes_cancelled ~ 0,
+                                               T ~ NA_real_),
+           answered_rent_not_conf = case_when((tenure == 3) & (mortconf > 0) ~ 1, 
+                                              (tenure == 3) & (mortconf > 0) ~ 0,
+                                              runif(1) < elig_pct$elig_rent  ~ 0,
+                                              T ~ NA_real_),
+           answered_mortgage_not_conf = case_when((tenure == 2) & (mortconf > 0) ~ 1, 
+                                                  (tenure == 2) & (mortconf < 0) ~ 0,
+                                                  runif(1) < elig_pct$elig_mortgage ~ 0,
+                                                  T ~ NA_real_),
+           answered_rent_not_paid = case_when((tenure == 3) & (mortlmth > 0) ~ 1,
+                                              (tenure == 3) & (mortlmth < 0) ~ 0,
+                                              runif(1) < elig_pct$elig_rent ~ 0,
+                                              T ~ NA_real_),
+           answered_mortgage_not_paid = case_when((tenure == 2) & (mortlmth > 0) ~ 1,
+                                                  (tenure == 2) & (mortlmth < 0) ~ 0,
+                                                  runif(1) < elig_pct$elig_mortgage ~ 0,
+                                                  T ~ NA_real_))
+  
+  prop_resp_by_race <- answered_df %>%
+    select(week_num, hisp_rrace, starts_with("answered")) %>%
+    pivot_longer(!c("hisp_rrace", "week_num"), names_to = "metric", values_to = "answered") %>%
+    group_by(week_num, metric, hisp_rrace) %>%
+    summarise(across(starts_with("answered"), ~sum(.x, na.rm = TRUE))) %>%
+    mutate(across(starts_with("answered"), ~.x/sum(.x, na.rm =  TRUE))) %>%
+    pivot_wider(names_from = metric, values_from = answered)
+  
+  
+  rr_by_race <- answered_df %>%
+    group_by(week_num, hisp_rrace) %>%
+    summarise(across(starts_with("answered"), ~mean(.x, na.rm = TRUE)))
+  
+  rr_total <- answered_df %>%
+    group_by(week_num) %>%
+    summarise(across(starts_with("answered"), ~mean(.x, na.rm = TRUE))) %>%
+    mutate(hisp_rrace = "Total")
+  
+  rr_out <- rbind(rr_by_race, rr_total) %>%
+    left_join(prop_resp_by_race, by = c("hisp_rrace", "week_num"), suffix = c("_rr", "_prop"))
+  
+  
+  job_loss_non_answer_race <- answered_df %>%
+    filter(!is.na(inc_loss)) %>%
+    select(week_num, hisp_rrace, inc_loss, starts_with("answered")) %>%
+    pivot_longer(!c("hisp_rrace", "week_num", "inc_loss"), names_to = "metric", values_to = "answered") %>%
+    filter(!is.na(answered)) %>%
+    group_by(week_num, metric, hisp_rrace, answered) %>%
+    summarise(inc_loss_pct = mean(inc_loss, na.rm = TRUE)) %>%
+    pivot_wider(names_from = metric, values_from = inc_loss_pct)
+  
+  job_loss_non_answer_all <- answered_df %>%
+    filter(!is.na(inc_loss)) %>%
+    select(week_num, inc_loss, starts_with("answered")) %>%
+    pivot_longer(!c("week_num", "inc_loss"), names_to = "metric", values_to = "answered") %>%
+    filter(!is.na(answered)) %>%
+    group_by(week_num, metric, answered) %>%
+    summarise(inc_loss_pct = mean(inc_loss, na.rm = TRUE)) %>%
+    mutate(hisp_rrace = "Total") %>%
+    pivot_wider(names_from = metric, values_from = inc_loss_pct)
+  
+  job_loss_out <- rbind(job_loss_non_answer_race, job_loss_non_answer_all)
+  
+  
+  return(list(rr_out, job_loss_out))
+  
+}
+
+
 
 CUR_WEEK <- 12
 week_vec <- c(1:CUR_WEEK)
+
+week_vec <- c(12)
 
 # Read in all PUF files for the specified weeks, and write out one big PUF file. There will be a column named
 # week_num that differentiates microdata from each week.
 
 puf_all_weeks <- map_df(week_vec, download_and_clean_puf_data)
+metric_list <- calculate_response_rate_metrics(puf_all_weeks)
+rr_out <- metric_list[[1]]
+job_loss_out <- metric_list[[2]]
 
 # Create public_use_files directory if it doesn't exist
 dir.create("data/intermediate-data", showWarnings = F)
@@ -362,6 +467,8 @@ write_csv(puf_all_weeks, str_glue("data/intermediate-data/pulse_puf_week_1_to_{C
 # Write out most recent CSV
 write_csv(puf_all_weeks, here("data/intermediate-data", "pulse_puf_all_weeks.csv"))
 
+write_csv(rr_out, here("data/intermediate-data", "pulse_rr_metrics_race_wk12.csv"))
+write_csv(job_loss_out, here("data/intermediate-data", "pulse_rr_metrics_job_loss_wk12.csv"))
 
 # Manually generate and write out data dictionary for appended columns
 appended_column_data_dictionary <-
